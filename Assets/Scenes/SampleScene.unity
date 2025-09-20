@@ -449,52 +449,6 @@ Mesh:
     offset: 0
     size: 0
     path: 
---- !u!28 &244046666
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 3
-  m_Width: 2
-  m_Height: 2
-  m_CompleteImageSize: 20
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 2
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 0
-    m_WrapV: 0
-    m_WrapW: 0
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 20
-  _typelessdata: 383838ff383838ff383838ff383838ff383838ff
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 
 --- !u!1 &289203093
 GameObject:
   m_ObjectHideFlags: 1
@@ -617,6 +571,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 289203093}
   m_Mesh: {fileID: 143964435}
+--- !u!146 &294990160 stripped
+WheelCollider:
+  m_CorrespondingSourceObject: {fileID: 5730040203952232317, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -703,13 +662,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0678412, y: 0, z: 0, w: 0.99769616}
-  m_LocalPosition: {x: 0, y: 1, z: -3.08}
+  m_LocalRotation: {x: 0.03411452, y: 0, z: 0, w: 0.99941796}
+  m_LocalPosition: {x: 0, y: 0.86, z: -4.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 777115667}
-  m_LocalEulerAnglesHint: {x: 7.78, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 3.91, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -882,7 +841,7 @@ MonoBehaviour:
   m_Script: {fileID: 365290288, guid: f56d46228aee4734f9114056c53bb57e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  projectid: 
+  projectid: 175724102638547
   updateInt: 10
   newSplatMapRestoreCode: 0
   toolbarInt: 0
@@ -1367,11 +1326,11 @@ MonoBehaviour:
   infoTexture: {fileID: 0}
   infoTexture2: {fileID: 0}
   infoTextures: []
-  plusSignTexture: {fileID: 893641906}
-  minSignTexture: {fileID: 1618946504}
-  signPostHeaderBG: {fileID: 244046666}
-  signPostListBG: {fileID: 1313294768}
-  signPostListSelBG: {fileID: 795820253}
+  plusSignTexture: {fileID: 967841906}
+  minSignTexture: {fileID: 1599118861}
+  signPostHeaderBG: {fileID: 1684456777}
+  signPostListBG: {fileID: 1292697445}
+  signPostListSelBG: {fileID: 903506830}
   editorSkin: 0
   showAllPrefabs: 1
   standardPrefabsFlag: 0
@@ -1424,7 +1383,7 @@ MonoBehaviour:
   terrainSplatTextures:
   - Splat 1 - Asphalt 01
   - Splat 2 - Asphalt 02
-  activeTerrain: {fileID: 1698196946}
+  activeTerrain: {fileID: 0}
   activeTerrainY: 0
   selectedTerrain: 0
   selectedRoadsOnly: 0
@@ -1607,17 +1566,16 @@ MonoBehaviour:
   OOOOQQDQDQScript: {fileID: 0}
   OCQQODQOOCElement: -1
   OQDDQOCDCC: -1
-  OOOOQOCQDO: {fileID: 1844817718}
-  OOOQQOOCCD: {fileID: 1844817718}
+  OOOOQOCQDO: {fileID: 0}
+  OOOQQOOCCD: {fileID: 0}
   OOCODOCDQO: {fileID: 0}
-  OQDQQQDCCO: 0
+  OQDQQQDCCO: -1
   selectedRoadSOMarker: -1
   selectedMarkerNode: -1
   selectedMarkerNodes: 
   selectedMarkerSONode: -1
   selectedMarkerSONodes: 
-  selectedObjects:
-  - {fileID: 887641511}
+  selectedObjects: []
   selectedExitRoad: -1
   newRoadFlag: 0
   roadTypeUpdateFlag: 1
@@ -1817,6 +1775,11 @@ Transform:
   - {fileID: 2089835345}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!146 &409131523 stripped
+WheelCollider:
+  m_CorrespondingSourceObject: {fileID: 5421187215723039018, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2037,6 +2000,11 @@ MonoBehaviour:
   markerStartUVY: 0.5668278
   customPoints: []
   handleObject: {fileID: 0}
+--- !u!4 &533597525 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 934128749554787388, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &584628935
 GameObject:
   m_ObjectHideFlags: 0
@@ -4733,6 +4701,11 @@ MonoBehaviour:
   terrainYStart: 0
   terrainHMRows: 0
   terrainHMCols: 0
+--- !u!4 &669603751 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 169715992642059624, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &777115665 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8932994728899503279, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
@@ -4755,55 +4728,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de58a68fa429d2b47865933b58b48531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  acceleration: 8000
-  brakeForce: 12000
-  maxSpeed: 200
---- !u!28 &795820253
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 3
-  m_Width: 2
-  m_Height: 2
-  m_CompleteImageSize: 20
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 2
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 0
-    m_WrapV: 0
-    m_WrapW: 0
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 20
-  _typelessdata: 4d4d4dff4d4d4dff4d4d4dff4d4d4dff4d4d4dff
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 
+  frontLeftCollider: {fileID: 294990160}
+  frontRightCollider: {fileID: 1353912314}
+  rearLeftCollider: {fileID: 409131523}
+  rearRightCollider: {fileID: 1197931085}
+  frontLeftMesh: {fileID: 2002513574}
+  frontRightMesh: {fileID: 533597525}
+  rearLeftMesh: {fileID: 669603751}
+  rearRightMesh: {fileID: 1869437309}
+  maxMotorTorque: 500
+  maxSteeringAngle: 30
+  brakeForce: 1000
+  rpm: 0
+  rpmMultiplier: 50
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -4853,24 +4790,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &887641511
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 561528938, guid: f56d46228aee4734f9114056c53bb57e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  roadScr: {fileID: 1844817718}
-  prefabScr: {fileID: 0}
-  markers: 00000000
-  startEnd: 0
-  prefab: {fileID: 0}
---- !u!28 &893641906
+--- !u!28 &903506830
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4882,12 +4802,12 @@ Texture2D:
     Hash: 00000000000000000000000000000000
   m_IsAlphaChannelOptional: 0
   serializedVersion: 3
-  m_Width: 12
-  m_Height: 12
-  m_CompleteImageSize: 760
+  m_Width: 2
+  m_Height: 2
+  m_CompleteImageSize: 20
   m_MipsStripped: 0
   m_TextureFormat: 4
-  m_MipCount: 4
+  m_MipCount: 2
   m_IsReadable: 1
   m_IsPreProcessed: 0
   m_IgnoreMipmapLimit: 1
@@ -4909,8 +4829,8 @@ Texture2D:
   m_LightmapFormat: 0
   m_ColorSpace: 1
   m_PlatformBlob: 
-  image data: 760
-  _typelessdata: 0000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc0000000000000000000000000000000000000000ffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffcc0000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc000000000000000000000000000000000000000000000000000000007f7f7f667f7f7f66000000000000000000000000000000007f7f7f667f7f7f6600000000000000007f7f7f667f7f7f66bfbfbf99bfbfbf997f7f7f667f7f7f667f7f7f667f7f7f66bfbfbf99bfbfbf997f7f7f667f7f7f6600000000000000007f7f7f667f7f7f66000000000000000000000000000000007f7f7f667f7f7f660000000000000000000000007f7f7f66000000007f7f7f66bfbfbf997f7f7f66000000007f7f7f6600000000bfbfbf99
+  image data: 20
+  _typelessdata: 4d4d4dff4d4d4dff4d4d4dff4d4d4dff4d4d4dff
   m_StreamData:
     serializedVersion: 2
     offset: 0
@@ -4930,7 +4850,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3549497932509481173, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.35
+      value: 0.38
       objectReference: {fileID: 0}
     - target: {fileID: 3549497932509481173, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -5101,6 +5021,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1844817719}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!28 &967841906
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 3
+  m_Width: 12
+  m_Height: 12
+  m_CompleteImageSize: 760
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 4
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 0
+    m_WrapV: 0
+    m_WrapW: 0
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 760
+  _typelessdata: 0000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc0000000000000000000000000000000000000000ffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffcc0000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc00000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffccffffffcc000000000000000000000000000000000000000000000000000000007f7f7f667f7f7f66000000000000000000000000000000007f7f7f667f7f7f6600000000000000007f7f7f667f7f7f66bfbfbf99bfbfbf997f7f7f667f7f7f667f7f7f667f7f7f66bfbfbf99bfbfbf997f7f7f667f7f7f6600000000000000007f7f7f667f7f7f66000000000000000000000000000000007f7f7f667f7f7f660000000000000000000000007f7f7f66000000007f7f7f66bfbfbf997f7f7f66000000007f7f7f6600000000bfbfbf99
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
 --- !u!1 &1102913891
 GameObject:
   m_ObjectHideFlags: 0
@@ -5203,9 +5169,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   car: {fileID: 777115667}
-  laneOffset: 4
-  laneChangeSpeed: 5
---- !u!28 &1313294768
+  laneOffset: 2.5
+  laneChangeSpeed: 4
+--- !u!146 &1197931085 stripped
+WheelCollider:
+  m_CorrespondingSourceObject: {fileID: 1796747413643405469, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
+--- !u!28 &1292697445
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5251,6 +5222,11 @@ Texture2D:
     offset: 0
     size: 0
     path: 
+--- !u!146 &1353912314 stripped
+WheelCollider:
+  m_CorrespondingSourceObject: {fileID: 6891086613295758990, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1398253994
 Mesh:
   m_ObjectHideFlags: 0
@@ -5416,7 +5392,7 @@ Mesh:
     offset: 0
     size: 0
     path: 
---- !u!28 &1618946504
+--- !u!28 &1599118861
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5457,6 +5433,52 @@ Texture2D:
   m_PlatformBlob: 
   image data: 112
   _typelessdata: ffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffccffffffcc
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
+--- !u!28 &1684456777
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 3
+  m_Width: 2
+  m_Height: 2
+  m_CompleteImageSize: 20
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 2
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 0
+    m_WrapV: 0
+    m_WrapW: 0
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 20
+  _typelessdata: 383838ff383838ff383838ff383838ff383838ff
   m_StreamData:
     serializedVersion: 2
     offset: 0
@@ -8556,6 +8578,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1844817717}
   m_Mesh: {fileID: 1398253994}
+--- !u!4 &1869437309 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5172045457080220489, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1870848664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8655,6 +8682,11 @@ MonoBehaviour:
   markerStartUVY: 0.9318886
   customPoints: []
   handleObject: {fileID: 0}
+--- !u!4 &2002513574 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6256000490887540306, guid: bce4455b7dca6934dacd5a9de644920a, type: 3}
+  m_PrefabInstance: {fileID: 925437591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2089835344
 GameObject:
   m_ObjectHideFlags: 0
