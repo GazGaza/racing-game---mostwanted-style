@@ -25,7 +25,7 @@ public class CarController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        float motor = maxMotorTorque * Input.GetAxis("Vertical");  // W/S
+        float motor = maxMotorTorque;  // W/S
         float steering = maxSteeringAngle * Input.GetAxis("Horizontal"); // A/D
 
         // Apply steering (front-wheel steering)
@@ -33,11 +33,17 @@ public class CarController : MonoBehaviour
         frontRightCollider.steerAngle = steering;
 
         // Apply motor torque (FWD)
-        frontLeftCollider.motorTorque = motor;
-        frontRightCollider.motorTorque = motor;
+        /*frontLeftCollider.motorTorque = motor;
+        frontRightCollider.motorTorque = motor;*/
 
-        // Braking when S is pressed
-        if (Input.GetKey(KeyCode.S))
+        if (Input.GetKey(KeyCode.W))
+        {
+            frontLeftCollider.motorTorque = motor;
+            frontRightCollider.motorTorque = motor;
+        }
+
+            // Braking when S is pressed
+            if (Input.GetKey(KeyCode.S))
         {
             frontLeftCollider.brakeTorque = brakeForce;
             frontRightCollider.brakeTorque = brakeForce;
@@ -60,6 +66,8 @@ public class CarController : MonoBehaviour
 
         // Fake engine RPM
         rpm = Mathf.Abs(frontLeftCollider.rpm) * rpmMultiplier;
+
+
     }
 
     private void UpdateWheelPose(WheelCollider collider, Transform mesh)
