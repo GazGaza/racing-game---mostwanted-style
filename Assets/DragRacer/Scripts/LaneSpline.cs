@@ -58,5 +58,27 @@ public class LaneSpline : MonoBehaviour
             prev = pos;
         }
     }
+
+    // Finds the nearest point on the spline to a world position
+    public float FindNearestPoint(Vector3 worldPos, int resolution = 50)
+    {
+        float nearestT = 0f;
+        float minDist = float.MaxValue;
+
+        // Sample spline along its length
+        for (int i = 0; i <= resolution; i++)
+        {
+            float t = i / (float)resolution;
+            Vector3 point = GetPoint(t);
+            float dist = Vector3.SqrMagnitude(worldPos - point);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearestT = t;
+            }
+        }
+
+        return nearestT;
+    }
 }
 

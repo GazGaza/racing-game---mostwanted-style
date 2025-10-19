@@ -1,200 +1,180 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
 
 public class HybridSplineCarController : MonoBehaviour
 {
     [Header("Spline Setup")]
-    public LaneSpline[] lanes;
-    public float laneWidth = 3.5f;
+    public LaneSpline[] lanes;             // assign spline lanes in inspector
     public float laneChangeSpeed = 3f;
+    public float laneWidth = 3.5f;
 
     [Header("Car Physics")]
-    public WheelCollider frontLeft;
-    public WheelCollider frontRight;
-    public WheelCollider rearLeft;
-    public WheelCollider rearRight;
+    public WheelCollider frontLeftCollider;
+    public WheelCollider frontRightCollider;
+    public WheelCollider rearLeftCollider;
+    public WheelCollider rearRightCollider;
 
     public Transform frontLeftMesh;
     public Transform frontRightMesh;
     public Transform rearLeftMesh;
     public Transform rearRightMesh;
 
-    public float motorTorque = 800f;
-    public float brakeTorque = 1000f;
-    public float maxSteerAngle = 5f; // small since spline controls direction
+    public float motorTorque = 1500f;
+    public float brakeTorque = 2000f;
+    public float maxSteerAngle = 5f;
 
-    [Header("Spline Control")]
-    public float followStrength = 5f;   // how strongly car aligns with spline
-    private Rigidbody rb;
-
-    [Header("Movement Settings")]
-    public float acceleration = 20f;
+    [Header("Free Drive Movement")]
+    public float acceleration = 10f;
     public float maxSpeed = 60f;
     public float brakeForce = 30f;
+    public float stabilizationForce = 500f;
 
+    [Header("Spline Assist Settings")]
+    public float alignStrength = 25f;      // how fast it aligns with spline direction
+    public float laneSnapStrength = 3f;    // how tight it stays centered
+    public float verticalFollowSpeed = 5f; // for hills and slopes
+
+    [Header("Burnout Settings")]
+    public float rpm = 0f;
+    public float maxRpm = 8000f;
+    public float burnoutThreshold = 3000f;
+
+    [Header("Ground Snap Settings")]
+    public LayerMask groundMask;
+    public float rideHeight = 0.3f;
+
+    private Rigidbody rb;
     private int currentLane = 0;
     private int targetLane = 0;
-    private float t = 0f;
-    private float laneOffset = 0f;
-    private float targetOffset = 0f;
-    private float speed = 0f;
-
-    [Header("Ground Snap")]
-    public LayerMask groundMask;           // include the road's layer(s)
-    public float rideHeight = 0.30f;       // meters from road surface to your car's pivot
+    private bool raceStarted = false;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.centerOfMass = new Vector3(0f, -0.35f, 0.05f);
-
-        // find center lane index
-        int centerIndex = Mathf.FloorToInt((lanes.Length - 1) * 0.5f);
-        currentLane = centerIndex;
-        targetLane = centerIndex;
-
-        LaneSpline mainSpline = lanes[currentLane];
-
-        // place the car exactly at the spline start
-        t = 0f; // start of spline
-        Vector3 startPoint = mainSpline.GetPoint(t);
-        Vector3 startDir = mainSpline.GetDirection(t);
-
-        // lift slightly above road surface so wheels rest on ground
-        Vector3 spawnPos = startPoint + Vector3.up * 0.3f;
-        transform.position = spawnPos;
-
-        // rotate to spline direction
-        transform.rotation = Quaternion.LookRotation(startDir, Vector3.up);
-
-        // reset lane offset
-        laneOffset = 0f;
-        targetOffset = 0f;
-
-        Debug.Log($"Car spawned at spline start: {spawnPos}");
-
-        
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
     }
 
     void FixedUpdate()
     {
         HandleInput();
-        FollowSplinePhysics();
-        StickToRoad();
-        rb.position = Vector3.Lerp(rb.position, rb.position + Vector3.down * 0.0005f, 0.5f);
-        ResetWheelColliderRotation(); // 🔥 new line
+        HandleBurnout();
+
+        if (raceStarted)
+            ApplySplineAssist();
+
+        HandleFreeDrive();
         UpdateWheels();
+        StickToRoad();
     }
 
     void HandleInput()
     {
-        // Accelerate
-        if (Input.GetKey(KeyCode.W))
-            speed = Mathf.MoveTowards(speed, maxSpeed, acceleration * Time.deltaTime);
-        // Brake / Reverse
-        else if (Input.GetKey(KeyCode.S))
-            speed = Mathf.MoveTowards(speed, 0, brakeForce * Time.deltaTime);
-        else
-            speed = Mathf.MoveTowards(speed, 0, (acceleration / 3f) * Time.deltaTime);
-
-        // Lane switching
         if (Input.GetKeyDown(KeyCode.A) && targetLane > 0)
             targetLane--;
         if (Input.GetKeyDown(KeyCode.D) && targetLane < lanes.Length - 1)
             targetLane++;
-
-        // Calculate target offset
-        targetOffset = (targetLane - ((lanes.Length - 1) * 0.5f)) * laneWidth;
     }
 
-    void FollowSplinePhysics()
+    void HandleFreeDrive()
+    {
+        float motorInput = 0f;
+        float brakeInput = 0f;
+
+        if (Input.GetKey(KeyCode.W))
+            motorInput = 1f;
+        if (Input.GetKey(KeyCode.S))
+            brakeInput = 1f;
+
+        // apply motor torque to rear wheels
+        rearLeftCollider.motorTorque = motorInput * motorTorque;
+        rearRightCollider.motorTorque = motorInput * motorTorque;
+
+        // apply brake torque
+        frontLeftCollider.brakeTorque = brakeInput * brakeTorque;
+        frontRightCollider.brakeTorque = brakeInput * brakeTorque;
+        rearLeftCollider.brakeTorque = brakeInput * brakeTorque;
+        rearRightCollider.brakeTorque = brakeInput * brakeTorque;
+
+        // small downward stabilization
+        rb.AddForce(-transform.up * stabilizationForce * Time.fixedDeltaTime);
+    }
+
+    void HandleBurnout()
+    {
+        bool burnout = Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.S);
+        float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.linearVelocity.magnitude / maxSpeed);
+        rpm = Mathf.MoveTowards(rpm, targetRpm, Time.deltaTime * 2000f);
+
+        Debug.Log($"RPM: {(int)rpm} | Burnout: {burnout}");
+
+        if (burnout)
+        {
+            // keep car in place but spin rear wheels visually
+            rearLeftCollider.motorTorque = 0f;
+            rearRightCollider.motorTorque = 0f;
+            rb.linearVelocity = Vector3.zero;
+        }
+    }
+
+    void ApplySplineAssist()
     {
         if (lanes == null || lanes.Length == 0) return;
 
-        if (speed > 0f)
-            t = Mathf.Clamp01(t + (speed / 200f) * Time.fixedDeltaTime);
+        var mainSpline = lanes[targetLane];
+        float t = mainSpline.FindNearestPoint(transform.position);
+        Vector3 splinePoint = mainSpline.GetPoint(t);
+        Vector3 splineDir = mainSpline.GetDirection(t);
 
-        var baseSpline = lanes[currentLane];
-        Vector3 basePoint = baseSpline.GetPoint(t);
-        Vector3 baseDir = baseSpline.GetDirection(t);
-        Vector3 baseRight = Vector3.Cross(baseDir, Vector3.up).normalized;
+        // steer alignment
+        Quaternion targetRot = Quaternion.LookRotation(splineDir, Vector3.up);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * alignStrength);
 
-        laneOffset = Mathf.Lerp(laneOffset, targetOffset, Time.fixedDeltaTime * laneChangeSpeed);
+        // lane centering
+        Vector3 laneCenter = splinePoint;
+        Vector3 desiredPos = new Vector3(laneCenter.x, transform.position.y, laneCenter.z);
+        Vector3 lateralOffset = (desiredPos - transform.position) * laneSnapStrength * Time.fixedDeltaTime;
+        rb.MovePosition(transform.position + lateralOffset);
 
-        // target on XZ only
-        Vector3 lateral = basePoint - baseRight * laneOffset;
-        Vector3 target = new Vector3(lateral.x, transform.position.y, lateral.z);
-
-        transform.position = Vector3.Lerp(transform.position, target, Time.fixedDeltaTime * 10f);
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            Quaternion.LookRotation(baseDir, Vector3.up),
-            Time.fixedDeltaTime * 5f
-        );
-
+        // follow road height
+        Vector3 rayOrigin = splinePoint + Vector3.up * 2f;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 10f, groundMask))
+        {
+            float targetY = Mathf.Lerp(transform.position.y, hit.point.y + rideHeight, Time.fixedDeltaTime * verticalFollowSpeed);
+            rb.MovePosition(new Vector3(rb.position.x, targetY, rb.position.z));
+        }
     }
 
-    void ResetWheelColliderRotation()
+    void StickToRoad()
     {
-        WheelCollider[] allWheels = {
-        frontLeft, frontRight,
-        rearLeft, rearRight
-    };
-
-        foreach (var wc in allWheels)
+        Vector3 rayOrigin = transform.position + Vector3.up * 1f;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 3f, groundMask))
         {
-            if (wc == null) continue;
-            // Preserve position but reset rotation to upright (world up)
-            var t = wc.transform;
-            t.rotation = Quaternion.Euler(0f, t.rotation.eulerAngles.y, 0f);
+            Vector3 pos = rb.position;
+            pos.y = Mathf.Lerp(pos.y, hit.point.y + rideHeight, Time.deltaTime * 8f);
+            rb.MovePosition(pos);
         }
     }
 
     void UpdateWheels()
     {
-        UpdateWheelPosition(frontLeft, frontLeftMesh);
-        UpdateWheelPosition(frontRight, frontRightMesh);
-        UpdateWheelPosition(rearLeft, rearLeftMesh);
-        UpdateWheelPosition(rearRight, rearRightMesh);
+        UpdateSingleWheel(frontLeftCollider, frontLeftMesh);
+        UpdateSingleWheel(frontRightCollider, frontRightMesh);
+        UpdateSingleWheel(rearLeftCollider, rearLeftMesh);
+        UpdateSingleWheel(rearRightCollider, rearRightMesh);
     }
 
-    void UpdateWheelPosition(WheelCollider col, Transform mesh)
+    void UpdateSingleWheel(WheelCollider col, Transform mesh)
     {
-        if (col == null || mesh == null) return;
-
-        Vector3 pos;
-        Quaternion rot;
-
-        // Gets current wheel world pose from collider
-        col.GetWorldPose(out pos, out rot);
-
-        // Smoothly interpolate mesh movement to avoid jitter
-        mesh.position = Vector3.Lerp(mesh.position, pos, Time.deltaTime * 20f);
-        mesh.rotation = Quaternion.Lerp(mesh.rotation, rot, Time.deltaTime * 20f);
+        col.GetWorldPose(out Vector3 pos, out Quaternion rot);
+        mesh.position = pos;
+        mesh.rotation = rot;
     }
 
-    void StickToRoad()
+    // Triggered by StartCheckpoint
+    public void StartRace()
     {
-        // Raycast just to get average ground height (not rotation)
-        Vector3 origin = transform.position + Vector3.up * 1.0f;
-        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 5f, groundMask))
-        {
-            // Smooth vertical follow (without touching car rotation)
-            float targetY = hit.point.y + 0.05f;
-            Vector3 pos = rb.position;
-            pos.y = Mathf.Lerp(pos.y, targetY, Time.deltaTime * 6f);
-            rb.MovePosition(pos);
-
-            // Aerodynamic downforce only (no rotation adjustment)
-            rb.AddForce(-transform.up * speed * 2f, ForceMode.Acceleration);
-        }
-        else
-        {
-            rb.AddForce(Vector3.down * 20f, ForceMode.Acceleration);
-        }
-
-        // Very light angular damping to stop shake
-        rb.angularVelocity *= 0.92f;
+        raceStarted = true;
+        Debug.Log("Race Started! Spline assist enabled.");
     }
-
 }
