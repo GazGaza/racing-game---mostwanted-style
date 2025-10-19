@@ -106,7 +106,7 @@ public class HybridSplineCarController : MonoBehaviour
         float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.linearVelocity.magnitude / maxSpeed);
         rpm = Mathf.MoveTowards(rpm, targetRpm, Time.deltaTime * 2000f);
 
-        Debug.Log($"RPM: {(int)rpm} | Burnout: {burnout}");
+        // Debug.Log($"RPM: {(int)rpm} | Burnout: {burnout}");
 
         if (burnout)
         {
