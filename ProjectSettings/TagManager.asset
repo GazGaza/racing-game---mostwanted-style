@@ -9,6 +9,11 @@ TagManager:
   - LaneLeft
   - LaneRight
   - finish
+  - Lane1
+  - Lane2
+  - Lane3
+  - Lane4
+  - Lane
   layers:
   - Default
   - TransparentFX
@@ -19,9 +24,9 @@ TagManager:
   - Track
   - Trigger
   - UI3D
-  - 
-  - 
-  - 
+  - Ground
+  - Lane
+  - Road
   - 
   - 
   - 
