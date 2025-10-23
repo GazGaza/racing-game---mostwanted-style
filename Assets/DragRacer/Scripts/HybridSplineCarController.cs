@@ -146,7 +146,7 @@ public class HybridSplineCarController : MonoBehaviour
     void HandleBurnout()
     {
         bool burnout = Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.S);
-        float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.velocity.magnitude / maxSpeed);
+        float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.linearVelocity.magnitude / maxSpeed);
         rpm = Mathf.MoveTowards(rpm, targetRpm, Time.deltaTime * 2000f);
 
         // Debug.Log($"RPM: {(int)rpm} | Burnout: {burnout}");
@@ -156,7 +156,7 @@ public class HybridSplineCarController : MonoBehaviour
             // keep car in place but spin rear wheels visually
             rearLeftCollider.motorTorque = 0f;
             rearRightCollider.motorTorque = 0f;
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
         }
     }
 
@@ -211,7 +211,7 @@ public class HybridSplineCarController : MonoBehaviour
         if (!engineAudioSource.isPlaying)
             engineAudioSource.Play();
 
-        float speedPercent = Mathf.Clamp01(rb.velocity.magnitude / Mathf.Max(0.01f, maxSpeed));
+        float speedPercent = Mathf.Clamp01(rb.linearVelocity.magnitude / Mathf.Max(0.01f, maxSpeed));
         float accelInfluence = Mathf.Max(throttleInput, speedPercent);
 
         float targetPitch = Mathf.Lerp(idleEnginePitch, maxEnginePitch, accelInfluence);
