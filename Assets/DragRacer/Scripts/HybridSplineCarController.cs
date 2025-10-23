@@ -74,14 +74,20 @@ public class HybridSplineCarController : MonoBehaviour
     private readonly List<RoadFrame> roadFrames = new List<RoadFrame>();
     private readonly HashSet<string> loggedMissingMethods = new HashSet<string>();
 
+    [Header("Engine Audio")]
+    public AudioSource engineAudioSource;
+    public float idleEnginePitch = 0.85f;
+    public float maxEnginePitch = 2f;
+    public float idleEngineVolume = 0.2f;
+    public float maxEngineVolume = 0.85f;
+    public float enginePitchResponse = 5f;
+    public float engineVolumeResponse = 5f;
+
     private Rigidbody rb;
     private float currentLaneIndex = 0f;
     private int targetLane = 0;
     private float throttleInput = 0f;
     private float brakeInput = 0f;
-    private int resolvedLaneCount = 1;
-    private int lastClosestIndex = 0;
-    private bool roadDataDirty = true;
 
     void Awake()
     {
@@ -89,6 +95,25 @@ public class HybridSplineCarController : MonoBehaviour
         rb.centerOfMass = new Vector3(0f, -0.35f, 0.05f);
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+        if (lanes != null && lanes.Length > 0)
+        {
+            targetLane = Mathf.Clamp(targetLane, 0, lanes.Length - 1);
+            currentLaneIndex = targetLane;
+        }
+        else
+        {
+            targetLane = 0;
+            currentLaneIndex = 0f;
+        }
+
+        if (engineAudioSource != null)
+        {
+            engineAudioSource.loop = true;
+            engineAudioSource.playOnAwake = false;
+            engineAudioSource.pitch = idleEnginePitch;
+            engineAudioSource.volume = idleEngineVolume;
+        }
     }
 
     void Start()
@@ -130,14 +155,11 @@ public class HybridSplineCarController : MonoBehaviour
 
     void FixedUpdate()
     {
-        bool roadReady = EnsureRoadReady();
-
-        HandleInput(roadReady);
-        UpdateLaneTarget(roadReady);
+        HandleInput();
+        UpdateLaneTarget();
         HandleBurnout();
 
-        if (roadReady)
-            ApplyRoadAssist();
+        ApplySplineAssist();
 
         HandleFreeDrive();
         HandleEngineAudio();
@@ -146,13 +168,23 @@ public class HybridSplineCarController : MonoBehaviour
 
     void HandleInput(bool roadReady)
     {
-        int laneLimit = Mathf.Max(1, resolvedLaneCount);
+        if (lanes == null || lanes.Length == 0)
+            return;
 
-        if (roadReady && Input.GetKeyDown(KeyCode.A) && targetLane > 0)
+        if (Input.GetKeyDown(KeyCode.A) && targetLane > 0)
             targetLane--;
         if (roadReady && Input.GetKeyDown(KeyCode.D) && targetLane < laneLimit - 1)
             targetLane++;
 
+    void UpdateLaneTarget()
+    {
+        if (lanes == null || lanes.Length == 0) return;
+
+        currentLaneIndex = Mathf.MoveTowards(currentLaneIndex, targetLane, laneChangeSpeed * Time.fixedDeltaTime);
+    }
+
+    void HandleFreeDrive()
+    {
         float motorInput = 0f;
         float braking = 0f;
 
@@ -163,32 +195,16 @@ public class HybridSplineCarController : MonoBehaviour
 
         throttleInput = motorInput;
         brakeInput = braking;
+
+        throttleInput = motorInput;
+        brakeInput = braking;
     }
 
-    void UpdateLaneTarget(bool roadReady)
-    {
-        if (!roadReady)
-        {
-            currentLaneIndex = 0f;
-            targetLane = 0;
-            return;
-        }
-
-        int laneLimit = Mathf.Max(1, resolvedLaneCount);
-        targetLane = Mathf.Clamp(targetLane, 0, laneLimit - 1);
-        currentLaneIndex = Mathf.MoveTowards(currentLaneIndex, targetLane, laneChangeSpeed * Time.fixedDeltaTime);
-    }
-
-    void HandleFreeDrive()
-    {
-        rearLeftCollider.motorTorque = throttleInput * motorTorque;
-        rearRightCollider.motorTorque = throttleInput * motorTorque;
-
-        float brake = brakeInput * brakeTorque;
-        frontLeftCollider.brakeTorque = brake;
-        frontRightCollider.brakeTorque = brake;
-        rearLeftCollider.brakeTorque = brake;
-        rearRightCollider.brakeTorque = brake;
+        // apply brake torque
+        frontLeftCollider.brakeTorque = braking * brakeTorque;
+        frontRightCollider.brakeTorque = braking * brakeTorque;
+        rearLeftCollider.brakeTorque = braking * brakeTorque;
+        rearRightCollider.brakeTorque = braking * brakeTorque;
 
         rb.AddForce(-transform.up * stabilizationForce * Time.fixedDeltaTime);
     }
@@ -215,10 +231,24 @@ public class HybridSplineCarController : MonoBehaviour
         int closestIndex = FindClosestFrameIndex(transform.position);
         RoadFrame frame = roadFrames[closestIndex];
 
-        float clampedLaneIndex = Mathf.Clamp(currentLaneIndex, 0f, Mathf.Max(1, resolvedLaneCount) - 1);
-        int lowerLane = Mathf.Clamp(Mathf.FloorToInt(clampedLaneIndex), 0, resolvedLaneCount - 1);
-        int upperLane = Mathf.Clamp(Mathf.CeilToInt(clampedLaneIndex), 0, resolvedLaneCount - 1);
-        float laneBlend = Mathf.Clamp01(clampedLaneIndex - lowerLane);
+        int lowerLaneIndex = Mathf.Clamp(Mathf.FloorToInt(currentLaneIndex), 0, lanes.Length - 1);
+        int upperLaneIndex = Mathf.Clamp(Mathf.CeilToInt(currentLaneIndex), 0, lanes.Length - 1);
+        float laneBlend = Mathf.Clamp01(currentLaneIndex - lowerLaneIndex);
+
+        int referenceLaneIndex = Mathf.Clamp(Mathf.RoundToInt(currentLaneIndex), 0, lanes.Length - 1);
+        LaneSpline referenceLane = lanes[referenceLaneIndex];
+        float t = referenceLane.FindNearestPoint(transform.position);
+
+        LaneSpline lowerLane = lanes[lowerLaneIndex];
+        LaneSpline upperLane = lanes[upperLaneIndex];
+
+        Vector3 lowerPoint = lowerLane.GetPoint(t);
+        Vector3 upperPoint = upperLane.GetPoint(t);
+        Vector3 splinePoint = Vector3.Lerp(lowerPoint, upperPoint, laneBlend);
+
+        Vector3 lowerDir = lowerLane.GetDirection(t);
+        Vector3 upperDir = upperLane.GetDirection(t);
+        Vector3 splineDir = Vector3.Slerp(lowerDir, upperDir, laneBlend).normalized;
 
         Vector3 lowerPos = frame.center + frame.right * GetLaneOffset(lowerLane);
         Vector3 upperPos = frame.center + frame.right * GetLaneOffset(upperLane);
@@ -227,11 +257,43 @@ public class HybridSplineCarController : MonoBehaviour
         Quaternion targetRot = Quaternion.LookRotation(frame.forward, frame.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * alignStrength);
 
-        Vector3 horizontalTarget = Vector3.Lerp(rb.position, new Vector3(blendedPos.x, rb.position.y, blendedPos.z), Time.fixedDeltaTime * laneSnapStrength);
-        float targetY = Mathf.Lerp(rb.position.y, (blendedPos + frame.up * rideHeight).y, Time.fixedDeltaTime * verticalFollowStrength);
-        Vector3 finalTarget = new Vector3(horizontalTarget.x, targetY, horizontalTarget.z);
+        // lane centering
+        Vector3 laneCenter = splinePoint;
+        Vector3 desiredPos = new Vector3(laneCenter.x, transform.position.y, laneCenter.z);
+        Vector3 targetPosition = Vector3.MoveTowards(transform.position, desiredPos, laneSnapStrength * Time.fixedDeltaTime);
 
-        rb.MovePosition(finalTarget);
+        // follow road height
+        Vector3 rayOrigin = splinePoint + Vector3.up * 2f;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 10f, groundMask))
+        {
+            float targetY = Mathf.Lerp(transform.position.y, hit.point.y + rideHeight, Time.fixedDeltaTime * verticalFollowSpeed);
+            targetPosition.y = targetY;
+        }
+
+        rb.MovePosition(targetPosition);
+    }
+
+    void HandleEngineAudio()
+    {
+        if (engineAudioSource == null || engineAudioSource.clip == null)
+            return;
+
+        if (!engineAudioSource.isPlaying)
+            engineAudioSource.Play();
+
+        float speedPercent = Mathf.Clamp01(rb.linearVelocity.magnitude / Mathf.Max(0.01f, maxSpeed));
+        float accelInfluence = Mathf.Max(throttleInput, speedPercent);
+
+        float targetPitch = Mathf.Lerp(idleEnginePitch, maxEnginePitch, accelInfluence);
+        if (brakeInput > 0f && throttleInput <= 0f)
+            targetPitch = Mathf.Lerp(targetPitch, idleEnginePitch * 0.9f, brakeInput);
+
+        float targetVolume = Mathf.Lerp(idleEngineVolume, maxEngineVolume, accelInfluence);
+        if (brakeInput > 0f && throttleInput <= 0f)
+            targetVolume = Mathf.Lerp(targetVolume, idleEngineVolume, brakeInput);
+
+        engineAudioSource.pitch = Mathf.MoveTowards(engineAudioSource.pitch, targetPitch, Time.fixedDeltaTime * enginePitchResponse);
+        engineAudioSource.volume = Mathf.MoveTowards(engineAudioSource.volume, targetVolume, Time.fixedDeltaTime * engineVolumeResponse);
     }
 
     void HandleEngineAudio()
@@ -275,162 +337,9 @@ public class HybridSplineCarController : MonoBehaviour
         mesh.rotation = rot;
     }
 
-    bool EnsureRoadReady()
-    {
-        if (road == null && autoAssignRoad)
-            road = GetComponentInParent<ERModularRoad>();
-
-        if (road == null)
-        {
-            resolvedLaneCount = Mathf.Max(1, fallbackLaneCount);
-            return false;
-        }
-
-        if (roadDataDirty || roadFrames.Count == 0)
-            CacheRoadData();
-
-        resolvedLaneCount = Mathf.Max(1, road.totalLanes > 0 ? road.totalLanes : fallbackLaneCount);
-        targetLane = Mathf.Clamp(targetLane, 0, resolvedLaneCount - 1);
-
-        return roadFrames.Count > 0;
-    }
-
-    void CacheRoadData()
-    {
-        roadFrames.Clear();
-        lastClosestIndex = 0;
-
-        if (road == null)
-            return;
-
-        Vector3[] centers = InvokeSplineSample("GetSplinePointsCenter", true);
-        if (centers == null || centers.Length == 0)
-            return;
-
-        Vector3[] lefts = InvokeSplineSample("GetSplinePointsLeftSide");
-        Vector3[] rights = InvokeSplineSample("GetSplinePointsRightSide");
-
-        float cumulative = 0f;
-        roadFrames.Capacity = centers.Length;
-
-        for (int i = 0; i < centers.Length; i++)
-        {
-            Vector3 center = centers[i];
-            Vector3 prev = centers[Mathf.Max(0, i - 1)];
-            Vector3 next = centers[Mathf.Min(centers.Length - 1, i + 1)];
-            Vector3 forward = (next - prev).normalized;
-            if (forward.sqrMagnitude < 0.0001f)
-                forward = (next - center).sqrMagnitude > 0.0001f ? (next - center).normalized : transform.forward;
-
-            Vector3 right = Vector3.zero;
-            if (lefts != null && rights != null && i < lefts.Length && i < rights.Length)
-            {
-                Vector3 lateral = rights[i] - lefts[i];
-                if (lateral.sqrMagnitude > 0.0001f)
-                    right = lateral.normalized;
-            }
-
-            if (right.sqrMagnitude < 0.0001f)
-            {
-                Vector3 projectedForward = new Vector3(forward.x, 0f, forward.z);
-                if (projectedForward.sqrMagnitude < 0.0001f)
-                    projectedForward = Vector3.forward;
-                right = Quaternion.AngleAxis(90f, Vector3.up) * projectedForward.normalized;
-            }
-
-            Vector3 up = Vector3.Cross(forward, right).normalized;
-            if (up.sqrMagnitude < 0.0001f)
-                up = Vector3.up;
-
-            right = Vector3.Cross(up, forward).normalized;
-
-            if (i > 0)
-                cumulative += Vector3.Distance(center, centers[i - 1]);
-
-            roadFrames.Add(new RoadFrame
-            {
-                center = center,
-                forward = forward,
-                right = right,
-                up = up,
-                distance = cumulative
-            });
-        }
-
-        roadDataDirty = false;
-    }
-
-    Vector3[] InvokeSplineSample(string methodName, bool logIfMissing = false)
-    {
-        if (road == null)
-            return null;
-
-        MethodInfo method = road.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        if (method == null || method.ReturnType != typeof(Vector3[]) || method.GetParameters().Length != 0)
-        {
-            if (logIfMissing && !loggedMissingMethods.Contains(methodName))
-            {
-                Debug.LogWarning($"[{nameof(HybridSplineCarController)}] {methodName} is unavailable on road '{road.name}'. Lane binding disabled until spline data is generated.");
-                loggedMissingMethods.Add(methodName);
-            }
-            return null;
-        }
-
-        try
-        {
-            return method.Invoke(road, null) as Vector3[];
-        }
-        catch (System.Exception ex)
-        {
-            if (!loggedMissingMethods.Contains(methodName))
-            {
-                Debug.LogWarning($"[{nameof(HybridSplineCarController)}] Failed to invoke {methodName} on road '{road.name}': {ex.Message}");
-                loggedMissingMethods.Add(methodName);
-            }
-            return null;
-        }
-    }
-
-    int FindClosestFrameIndex(Vector3 position)
-    {
-        if (roadFrames.Count == 0)
-            return 0;
-
-        int closest = Mathf.Clamp(lastClosestIndex, 0, roadFrames.Count - 1);
-        float bestSqr = (position - roadFrames[closest].center).sqrMagnitude;
-
-        for (int i = 0; i < roadFrames.Count; i++)
-        {
-            float sqr = (position - roadFrames[i].center).sqrMagnitude;
-            if (sqr < bestSqr)
-            {
-                bestSqr = sqr;
-                closest = i;
-            }
-        }
-
-        lastClosestIndex = closest;
-        return closest;
-    }
-
-    float GetLaneOffset(int laneIndex)
-    {
-        int laneLimit = Mathf.Max(1, resolvedLaneCount);
-        laneIndex = Mathf.Clamp(laneIndex, 0, laneLimit - 1);
-
-        float width = Mathf.Max(0.01f, ResolveLaneWidth());
-        float startOffset = -((laneLimit - 1) * width) * 0.5f;
-        return startOffset + laneIndex * width;
-    }
-
-    float ResolveLaneWidth()
-    {
-        if (laneWidthOverride > 0f)
-            return laneWidthOverride;
-
-        if (road != null && road.laneWidth > 0f)
-            return road.laneWidth;
-
-        return defaultLaneWidth;
-    }
+    // Engine audio setup guidance:
+    // 1. Create an empty child GameObject on the car and add an AudioSource component.
+    // 2. Assign a looping engine clip (44.1 kHz WAV or OGG Vorbis are Unity-friendly formats).
+    // 3. Drag that AudioSource into the engineAudioSource field in the inspector.
+    // 4. Balance spatial blend and doppler settings to suit your camera setup.
 }
