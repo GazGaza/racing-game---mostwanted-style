@@ -1,11 +1,22 @@
-﻿using UnityEngine;
+using System.Collections.Generic;
+using System.Reflection;
+using EasyRoads3Dv3;
+using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class HybridSplineCarController : MonoBehaviour
 {
-    [Header("Spline Setup")]
-    public LaneSpline[] lanes;             // assign spline lanes in inspector
+    [Header("EasyRoads Binding")]
+    public ERModularRoad road;
+    [Tooltip("Automatically search the parents for an ERModularRoad when none is assigned.")]
+    public bool autoAssignRoad = true;
+    [Tooltip("Fallback lane count when the EasyRoads road has no lane data.")]
+    public int fallbackLaneCount = 3;
+    [Tooltip("Override lane width in metres. Leave at 0 to use the width from the EasyRoads road settings.")]
+    public float laneWidthOverride = 0f;
+    [Tooltip("Fallback width when EasyRoads has no lane data and no override is provided.")]
+    public float defaultLaneWidth = 3.5f;
     public float laneChangeSpeed = 3f;
-    public float laneWidth = 3.5f;
 
     [Header("Car Physics")]
     public WheelCollider frontLeftCollider;
@@ -28,19 +39,40 @@ public class HybridSplineCarController : MonoBehaviour
     public float brakeForce = 30f;
     public float stabilizationForce = 500f;
 
-    [Header("Spline Assist Settings")]
-    public float alignStrength = 25f;      // how fast it aligns with spline direction
-    public float laneSnapStrength = 3f;    // how tight it stays centered
-    public float verticalFollowSpeed = 5f; // for hills and slopes
+    [Header("Lane Assist Settings")]
+    public float alignStrength = 25f;
+    public float laneSnapStrength = 3f;
+    public float verticalFollowStrength = 5f;
+    public float rideHeight = 0.3f;
 
     [Header("Burnout Settings")]
     public float rpm = 0f;
     public float maxRpm = 8000f;
     public float burnoutThreshold = 3000f;
 
-    [Header("Ground Snap Settings")]
+    [Header("Ground Detection")]
     public LayerMask groundMask;
-    public float rideHeight = 0.3f;
+
+    [Header("Engine Audio")]
+    public AudioSource engineAudioSource;
+    public float idleEnginePitch = 0.85f;
+    public float maxEnginePitch = 2f;
+    public float idleEngineVolume = 0.2f;
+    public float maxEngineVolume = 0.85f;
+    public float enginePitchResponse = 5f;
+    public float engineVolumeResponse = 5f;
+
+    private struct RoadFrame
+    {
+        public Vector3 center;
+        public Vector3 forward;
+        public Vector3 right;
+        public Vector3 up;
+        public float distance;
+    }
+
+    private readonly List<RoadFrame> roadFrames = new List<RoadFrame>();
+    private readonly HashSet<string> loggedMissingMethods = new HashSet<string>();
 
     [Header("Engine Audio")]
     public AudioSource engineAudioSource;
@@ -57,7 +89,7 @@ public class HybridSplineCarController : MonoBehaviour
     private float throttleInput = 0f;
     private float brakeInput = 0f;
 
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
         rb.centerOfMass = new Vector3(0f, -0.35f, 0.05f);
@@ -84,6 +116,43 @@ public class HybridSplineCarController : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        EnsureRoadReady();
+        targetLane = Mathf.Clamp(targetLane, 0, Mathf.Max(0, resolvedLaneCount - 1));
+        currentLaneIndex = targetLane;
+
+        if (engineAudioSource != null)
+        {
+            engineAudioSource.loop = true;
+            engineAudioSource.playOnAwake = false;
+            engineAudioSource.pitch = idleEnginePitch;
+            engineAudioSource.volume = idleEngineVolume;
+        }
+    }
+
+    void OnValidate()
+    {
+        fallbackLaneCount = Mathf.Max(1, fallbackLaneCount);
+        laneChangeSpeed = Mathf.Max(0f, laneChangeSpeed);
+        alignStrength = Mathf.Max(0f, alignStrength);
+        laneSnapStrength = Mathf.Max(0f, laneSnapStrength);
+        verticalFollowStrength = Mathf.Max(0f, verticalFollowStrength);
+        defaultLaneWidth = Mathf.Max(0.5f, defaultLaneWidth);
+        stabilizationForce = Mathf.Max(0f, stabilizationForce);
+        rideHeight = Mathf.Max(0f, rideHeight);
+        maxSpeed = Mathf.Max(0.1f, maxSpeed);
+        motorTorque = Mathf.Max(0f, motorTorque);
+        brakeTorque = Mathf.Max(0f, brakeTorque);
+
+        if (!Application.isPlaying)
+        {
+            if (autoAssignRoad && road == null)
+                road = GetComponentInParent<ERModularRoad>();
+            roadDataDirty = true;
+        }
+    }
+
     void FixedUpdate()
     {
         HandleInput();
@@ -95,19 +164,17 @@ public class HybridSplineCarController : MonoBehaviour
         HandleFreeDrive();
         HandleEngineAudio();
         UpdateWheels();
-        StickToRoad();
     }
 
-    void HandleInput()
+    void HandleInput(bool roadReady)
     {
         if (lanes == null || lanes.Length == 0)
             return;
 
         if (Input.GetKeyDown(KeyCode.A) && targetLane > 0)
             targetLane--;
-        if (Input.GetKeyDown(KeyCode.D) && targetLane < lanes.Length - 1)
+        if (roadReady && Input.GetKeyDown(KeyCode.D) && targetLane < laneLimit - 1)
             targetLane++;
-    }
 
     void UpdateLaneTarget()
     {
@@ -129,9 +196,9 @@ public class HybridSplineCarController : MonoBehaviour
         throttleInput = motorInput;
         brakeInput = braking;
 
-        // apply motor torque to rear wheels
-        rearLeftCollider.motorTorque = motorInput * motorTorque;
-        rearRightCollider.motorTorque = motorInput * motorTorque;
+        throttleInput = motorInput;
+        brakeInput = braking;
+    }
 
         // apply brake torque
         frontLeftCollider.brakeTorque = braking * brakeTorque;
@@ -139,30 +206,30 @@ public class HybridSplineCarController : MonoBehaviour
         rearLeftCollider.brakeTorque = braking * brakeTorque;
         rearRightCollider.brakeTorque = braking * brakeTorque;
 
-        // small downward stabilization
         rb.AddForce(-transform.up * stabilizationForce * Time.fixedDeltaTime);
     }
 
     void HandleBurnout()
     {
         bool burnout = Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.S);
-        float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.linearVelocity.magnitude / maxSpeed);
+        float targetRpm = burnout ? maxRpm : Mathf.Lerp(0f, maxRpm, rb.velocity.magnitude / Mathf.Max(0.01f, maxSpeed));
         rpm = Mathf.MoveTowards(rpm, targetRpm, Time.deltaTime * 2000f);
-
-        // Debug.Log($"RPM: {(int)rpm} | Burnout: {burnout}");
 
         if (burnout)
         {
-            // keep car in place but spin rear wheels visually
             rearLeftCollider.motorTorque = 0f;
             rearRightCollider.motorTorque = 0f;
-            rb.linearVelocity = Vector3.zero;
+            rb.velocity = Vector3.zero;
         }
     }
 
-    void ApplySplineAssist()
+    void ApplyRoadAssist()
     {
-        if (lanes == null || lanes.Length == 0) return;
+        if (roadFrames.Count == 0)
+            return;
+
+        int closestIndex = FindClosestFrameIndex(transform.position);
+        RoadFrame frame = roadFrames[closestIndex];
 
         int lowerLaneIndex = Mathf.Clamp(Mathf.FloorToInt(currentLaneIndex), 0, lanes.Length - 1);
         int upperLaneIndex = Mathf.Clamp(Mathf.CeilToInt(currentLaneIndex), 0, lanes.Length - 1);
@@ -183,8 +250,11 @@ public class HybridSplineCarController : MonoBehaviour
         Vector3 upperDir = upperLane.GetDirection(t);
         Vector3 splineDir = Vector3.Slerp(lowerDir, upperDir, laneBlend).normalized;
 
-        // steer alignment
-        Quaternion targetRot = Quaternion.LookRotation(splineDir, Vector3.up);
+        Vector3 lowerPos = frame.center + frame.right * GetLaneOffset(lowerLane);
+        Vector3 upperPos = frame.center + frame.right * GetLaneOffset(upperLane);
+        Vector3 blendedPos = Vector3.Lerp(lowerPos, upperPos, laneBlend);
+
+        Quaternion targetRot = Quaternion.LookRotation(frame.forward, frame.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * alignStrength);
 
         // lane centering
@@ -226,15 +296,27 @@ public class HybridSplineCarController : MonoBehaviour
         engineAudioSource.volume = Mathf.MoveTowards(engineAudioSource.volume, targetVolume, Time.fixedDeltaTime * engineVolumeResponse);
     }
 
-    void StickToRoad()
+    void HandleEngineAudio()
     {
-        Vector3 rayOrigin = transform.position + Vector3.up * 1f;
-        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 3f, groundMask))
-        {
-            Vector3 pos = rb.position;
-            pos.y = Mathf.Lerp(pos.y, hit.point.y + rideHeight, Time.deltaTime * 8f);
-            rb.MovePosition(pos);
-        }
+        if (engineAudioSource == null || engineAudioSource.clip == null)
+            return;
+
+        if (!engineAudioSource.isPlaying)
+            engineAudioSource.Play();
+
+        float speedPercent = Mathf.Clamp01(rb.velocity.magnitude / Mathf.Max(0.01f, maxSpeed));
+        float accelInfluence = Mathf.Max(throttleInput, speedPercent);
+
+        float targetPitch = Mathf.Lerp(idleEnginePitch, maxEnginePitch, accelInfluence);
+        if (brakeInput > 0f && throttleInput <= 0f)
+            targetPitch = Mathf.Lerp(targetPitch, idleEnginePitch * 0.9f, brakeInput);
+
+        float targetVolume = Mathf.Lerp(idleEngineVolume, maxEngineVolume, accelInfluence);
+        if (brakeInput > 0f && throttleInput <= 0f)
+            targetVolume = Mathf.Lerp(targetVolume, idleEngineVolume, brakeInput);
+
+        engineAudioSource.pitch = Mathf.MoveTowards(engineAudioSource.pitch, targetPitch, Time.fixedDeltaTime * enginePitchResponse);
+        engineAudioSource.volume = Mathf.MoveTowards(engineAudioSource.volume, targetVolume, Time.fixedDeltaTime * engineVolumeResponse);
     }
 
     void UpdateWheels()
@@ -247,6 +329,9 @@ public class HybridSplineCarController : MonoBehaviour
 
     void UpdateSingleWheel(WheelCollider col, Transform mesh)
     {
+        if (col == null || mesh == null)
+            return;
+
         col.GetWorldPose(out Vector3 pos, out Quaternion rot);
         mesh.position = pos;
         mesh.rotation = rot;
